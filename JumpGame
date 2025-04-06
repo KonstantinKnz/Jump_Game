@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strichmännchen Jump</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        canvas {
+            background-color: white;
+            display: block;
+            margin: auto;
+            border: 2px solid black;
+        }
+        #game-over {
+            display: none;
+            font-size: 24px;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Strichmännchen Jump</h1>
+    <p>Drücke die Leertaste, um zu springen!</p>
+    <p id="game-over">Game Over! Drücke F5 zum Neustart.</p>
+    <canvas id="gameCanvas" width="800" height="300"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let stickman = { x: 50, y: 200, width: 20, height: 40, velocityY: 0, gravity: 0.5, isJumping: false };
+        let obstacles = [];
+        let score = 0;
+        let gameOver = false;
+        let speed = 5;
+        let minDistance = 200; // Mindestabstand zwischen Hindernissen
+        let maxDistance = 400; // Maximaler Abstand
+        let nextObstacleX = canvas.width + Math.random() * (maxDistance - minDistance) + minDistance;
+
+        function drawStickman(x, y) {
+            ctx.beginPath();
+            ctx.arc(x + 10, y, 10, 0, Math.PI * 2); // Kopf
+            ctx.moveTo(x + 10, y + 10);
+            ctx.lineTo(x + 10, y + 30); // Körper
+            ctx.moveTo(x, y + 20);
+            ctx.lineTo(x + 20, y + 20); // Arme
+            ctx.moveTo(x + 10, y + 30);
+            ctx.lineTo(x, y + 50); // Linkes Bein
+            ctx.moveTo(x + 10, y + 30);
+            ctx.lineTo(x + 20, y + 50); // Rechtes Bein
+            ctx.stroke();
+        }
+
+        function createObstacle() {
+            let obstacle = { x: nextObstacleX, y: 230, width: 20, height: 40, speed: speed };
+            obstacles.push(obstacle);
+            nextObstacleX += Math.random() * (maxDistance - minDistance) + minDistance; // Setzt den neuen Abstand
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Stickman Bewegung
+            if (stickman.isJumping) {
+                stickman.velocityY += stickman.gravity;
+                stickman.y += stickman.velocityY;
+                if (stickman.y >= 200) {
+                    stickman.y = 200;
+                    stickman.isJumping = false;
+                }
+            }
+
+            // Hindernisse aktualisieren
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].x -= obstacles[i].speed;
+                if (obstacles[i].x < -obstacles[i].width) {
+                    obstacles.splice(i, 1);
+                    score++;
+                    speed += 0.1; // Schwierigkeit steigt langsam
+                }
+            }
+
+            // Neues Hindernis hinzufügen, wenn das letzte weit genug entfernt ist
+            if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - maxDistance) {
+                createObstacle();
+            }
+
+            // Kollisionserkennung
+            for (let i = 0; i < obstacles.length; i++) {
+                let obs = obstacles[i];
+                if (
+                    stickman.x < obs.x + obs.width &&
+                    stickman.x + stickman.width > obs.x &&
+                    stickman.y + stickman.height > obs.y
+                ) {
+                    gameOver = true;
+                    document.getElementById("game-over").style.display = "block"; // Zeigt "Game Over"
+                }
+            }
+
+            // Zeichnen
+            drawStickman(stickman.x, stickman.y);
+            ctx.fillStyle = "black";
+            for (let i = 0; i < obstacles.length; i++) {
+                let obs = obstacles[i];
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+            }
+
+            ctx.fillText("Score: " + score, 700, 20);
+
+            requestAnimationFrame(update);
+        }
+
+        document.addEventListener("keydown", function (event) {
+            if (event.code === "Space" && !stickman.isJumping) {
+                stickman.isJumping = true;
+                stickman.velocityY = -10;
+            }
+        });
+
+        update();
+    </script>
+</body>
+</html>
